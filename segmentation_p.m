@@ -1,10 +1,32 @@
-%segmentation_p recieves seeds- a matrix of relevant cellcentroids output from
-%essential_pre_processing and per_ch a binary matrix outputted from
-%thresholding_ch1 which represents the pericytes morphologies.
+% #################
+% // Inputs
+% #################
+% seeds- a matrix of relevant cellcentroids 
+%        .
+% per_ch- a binary matrix outputted from thresholding_ch1 
+%         which represents the pericytes morphologies
 %
-%segmentaion_p outputs begin_centroids- a list of all the centroids of the pericytes in the stack
-%and orginized_out_cc a connected-compenenets array containing all the
-%pericytes morphologies ordered in begin_centroids order
+% #################
+% // Outpus
+% #################
+% begin_centroids- a list of all the centroids of the pericytes in the stack
+%
+% orginized_out_cc- a connected-compenenets array containing all the
+%                   pericytes morphologies ordered in begin_centroids order
+% #################
+% // Functionallity
+% #################
+% 	Find merged seeds:
+
+%	Create borders between the merged components:
+
+%	Remove the borders from the growth channel so that no further growth will be done into the borders. Separation is done by 
+%   removing said pixels from the seeds, this guarantees that seeds remain separated.
+%
+
+
+
+
 
 function [orginized_out_cc,begin_centroids]=segmentation_p(seeds,per_ch)%seed is 3d mask and pr_ch is localy thresholded mask
 tic;
@@ -14,10 +36,10 @@ counter=0;
 %% validate seeds(before step dilation)
 growth_ch=logical(per_ch);
 seeds_mat_pre=logical(seeds);% nessesary for finding the growth difference
-seeds_mat_pre=seeds_mat_pre.*growth_ch;
-valid_centroids=find(seeds_mat_pre);
+seeds_mat_pre=seeds_mat_pre.*growth_ch; % remove seeds outside of growth_ch
+valid_centroids=find(seeds_mat_pre); %list of valid centrodis
 seeds_cc_pre=bwconncomp(seeds_mat_pre);% nessasary to remove seeds
-
+%% removes adjacent seeds from seeds_mat_pre and valid_centrodis
 if(length(seeds_cc_pre.PixelIdxList)<length(valid_centroids))
     pti='we have two adjacent seeds in the matrix, removing all adjacent seeds'
     for i1=1:length(seeds_cc_pre.PixelIdxList)
@@ -33,28 +55,31 @@ if(length(seeds_cc_pre.PixelIdxList)<length(valid_centroids))
     seeds_mat_pre(seeds_mat_pre>0)=0;
     seeds_mat_pre(valid_centroids)=1;
 end
-%% setting up strels begin_centroids and growth matrices
+%% setting up structure elements
 seeds_mat_out=seeds_mat_pre;
 se=strel('cube',3);
 se2=strel('cube',5);
 
+%% seting up begin_centroids
 % valid seed centroids(in growing process)
-%nessasary to figure out which seed bodies are valid
+% nessasary to figure out which seed bodies are valid
 begin_centroids=valid_centroids;
 
+%% setting up growth matrices
 growth_matrix_for_borders=false(size(per_ch));% nessesary for borders
 matrix_for_borders=cast(zeros(size(per_ch)),'uint8');% nessasary for borders sumation
-%%
-%% growth of seeds, seperation of meeting seeds,main loop 
+
+%% growth of seeds, seperation of interesecting seeds 
+%% main loop: 
 while(~isempty(seeds_cc_pre.PixelIdxList))
-   %% growth
+   % growth
     seeds_mat_post=imdilate(seeds_mat_pre,se);% standard dialation
     seeds_mat_post(growth_ch==0)=0;
     seeds_cc_post=bwconncomp(seeds_mat_post);% now lets check the growth cc
-    %% checking for meetup and resolving by seperation
+    %checking for meetup and resolving by seperation
     if(length(seeds_cc_post.PixelIdxList)~=length(seeds_cc_pre.PixelIdxList))%oh no we have a meetup
         orginized_pre_cc=seeds_cc_pre.PixelIdxList;
-        %% orginizing seeds
+        % orginizing seeds
         for i3=1:length(seeds_cc_pre.PixelIdxList)
         
             memb_pre=ismember(valid_centroids,seeds_cc_pre.PixelIdxList{i3});
@@ -65,7 +90,7 @@ while(~isempty(seeds_cc_pre.PixelIdxList))
             orginized_pre_cc{memb_pre>0}=seeds_cc_pre.PixelIdxList{i3};
             
         end
-        %% finiding problematic seeds
+        % finiding "problematic" seeds
         centoids_to_seperate=zeros(size(valid_centroids));
         for i4=1:length(seeds_cc_post.PixelIdxList)
             memb=ismember(valid_centroids,seeds_cc_post.PixelIdxList{i4});
@@ -75,8 +100,8 @@ while(~isempty(seeds_cc_pre.PixelIdxList))
         end
         
         indexes=find(centoids_to_seperate);
-        %%
-        %% seperation by finding borders
+        
+        % seperation by finding borders
         for i5=1:length(indexes)
             
             counter=counter+1;
@@ -94,17 +119,17 @@ while(~isempty(seeds_cc_pre.PixelIdxList))
         seeds_mat_post(matrix_for_borders>0)=0;%seperate seeds with border
         
     end
-    %%
+    %
     %timestamp2=toc;
     
-    %% check for validity of assumptions
+    % check for validity of assumptions
     seeds_cc_post=bwconncomp(seeds_mat_post);
     if(length(seeds_cc_post.PixelIdxList)~=length(seeds_cc_pre.PixelIdxList))%oh no we have a meetup
             pri='method didnt seperate the seeds'%our method didnt seperate the guys
             return
     end
     %tic;
-    %% orginizing seeds for comparison
+    % orginizing seeds for comparison
     orginized_pre_cc=seeds_cc_pre.PixelIdxList;
     orginized_post_cc=seeds_cc_post.PixelIdxList;
     for i6=1:length(seeds_cc_post.PixelIdxList)%length must be equal to pre
@@ -118,7 +143,7 @@ while(~isempty(seeds_cc_pre.PixelIdxList))
         orginized_post_cc{memb_post>0}=seeds_cc_post.PixelIdxList{i6};
     end
     %%
-    %% removing seeds that have completed growth
+    % removing seeds that have completed growth
     for i7=1:length(valid_centroids)
         if(isequal(orginized_pre_cc{i7},orginized_post_cc{i7})) %need to remove seed
             valid_centroids(i7)=0;
@@ -127,7 +152,7 @@ while(~isempty(seeds_cc_pre.PixelIdxList))
     end
     valid_centroids(valid_centroids==0)=[];
     %%
-    %% preparing next step
+    % preparing next step
     seeds_mat_pre=seeds_mat_post;
     seeds_mat_out(seeds_mat_pre>0)=1;
     seeds_cc_pre=bwconncomp(seeds_mat_pre);
