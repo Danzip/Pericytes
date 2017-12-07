@@ -1,0 +1,10 @@
+Preparing Data and using the gui
+
+1.run pericyte_proj
+2. select output_dir the directory to which the prepared data(stack.mat) will be saved
+3. select imagestack_dir the directory in which the raw data is saved
+4. enter the name of the image stack 
+5. alghorithm will now process the data and segment the image
+6. when segmentation is complete run gui_forproj.m
+7. select the folder from step 2 in which the segmented data is saved
+8. start labeling data
