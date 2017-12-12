@@ -2,6 +2,17 @@ Preparing Data and using the gui
 
 1. run pericyte_proj
 
+************************************************
+Required data for each stack of pericyte proj:
+1. Raw channels 1 and 3 
+2. CellCentroids Merged (mergedcclist)
+3. VascEnhancedMask
+
+pericyte_proj should be able to find the needed files
+It requires the imagestack directory and the imageStack name
+*************************************************************
+
+
 2. select output_dir the directory to which the prepared data(stack.mat) will be saved
 
 3. select imagestack_dir the directory in which the raw data is saved (for example 
